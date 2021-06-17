@@ -1,0 +1,232 @@
+/*  Script for handling MIDI
+ *  pedalboard from the Wiscount Domus Recitative organs.
+ *  Reads a contact matrix (8 columns x 4 lines) with diodes
+ *  and sends MIDI messages.
+
+ *   Flashing LED (pin 13) every second means 
+ *   that the program is working correctly. 
+ *   The LED lights up and goes out 
+ *   while sending a MIDI message.
+ *   
+ *   Tested on Arduino Uno and Nano
+ * author: Romuald Milewski 
+ */
+
+//---------------------------------------------------------------------------
+//----------------------------for signalisations work:----------------------
+// Variables will chang 
+int ledState = LOW;             // ledState used to set the LED
+
+// Generally, you should use "unsigned long" for variables that hold time
+// The value will quickly become too large for an int to store
+unsigned long previousMillis = 0;        // will store last time LED was updated
+
+// constants won't change:
+const long interval = 1000;  
+//-------------------------------------------------------
+
+// define adress rovs
+#define pin_adress0 A0
+#define pin_adress1 A1
+#define pin_adress2 A2
+#define pin_adress3 A3
+
+
+
+#define LiczbaKlawiszy (61)
+boolean Key[LiczbaKlawiszy];
+
+boolean Key_last[LiczbaKlawiszy];
+
+int pin_data[] = {2,3,4,5,6,7,8,9}; // define data pins 
+
+  
+
+
+int vol = 90; // walue velocity
+// setup channel MIDI
+//You can change the channel from 1 to 16.
+int channel_on = 0x90; // kanal 1 - initial variables for midi channel
+int channel_off = 0x80; // kanal 1 - initial variables for midi channel
+
+// int channel_on = 0x91; // kanal 2
+// int channel_off = 0x81; // kanal 2
+
+// int channel_on = 0x92; // kanal 3
+// int channel_off = 0x81; // kanal 3
+
+//int channel_on = 0x93; // kanal 4
+//int channel_off = 0x83; // kanal 4
+
+// int channel_on = 0x94; // kanal 5
+// int channel_off = 0x84; // kanal 5
+
+// int channel_on = 0x95; // kanal 6
+// int channel_off = 0x85; // kanal 6
+
+// int channel_on = 0x96; // kanal 7
+// int channel_off = 0x86; // kanal 7
+
+// int channel_on = 0x97; // kanal 8
+// int channel_off = 0x87; // kanal 8
+
+void setup()  {
+  
+  Serial.begin (31250); // setup serial for MIDI
+  //Serial.begin (115200); //You can change the transmission speed if you connect Arduino to PC via Hairless Midi - serial bridge
+  for (int i = 0; i <= LiczbaKlawiszy -1; i++) {
+   Key[i] = 1;
+   
+   }
+   
+  // define input pin_data
+  for (int i = 0; i <= 7; i++) {
+  pinMode(pin_data[i], INPUT_PULLUP);
+  }
+  
+  //define output pin_adress
+    pinMode(pin_adress0, OUTPUT);
+ digitalWrite(pin_adress0, HIGH);
+    pinMode(pin_adress1, OUTPUT);
+ digitalWrite(pin_adress1, HIGH);
+    pinMode(pin_adress2, OUTPUT);
+ digitalWrite(pin_adress2, HIGH);
+ pinMode(pin_adress3, OUTPUT);
+ digitalWrite(pin_adress3, HIGH);
+ 
+
+    
+// define output LED
+pinMode(LED_BUILTIN, OUTPUT);
+
+
+}
+
+void loop()  {
+
+   
+  digitalWrite(pin_adress0, LOW);
+  digitalWrite(pin_adress1, HIGH);
+  digitalWrite(pin_adress2, HIGH); // read 1-st (first) octet
+  digitalWrite(pin_adress3, HIGH); 
+      for (int i = 0; i <= 7; i++) {
+      Key[i+0*8] = digitalRead(pin_data[i]);
+     }
+
+  digitalWrite(pin_adress0, HIGH);
+  digitalWrite(pin_adress1, LOW);
+  digitalWrite(pin_adress2, HIGH); // read 2-st (second) octet
+  digitalWrite(pin_adress3, HIGH);     
+      for (int i = 0; i <= 7; i++) {
+      Key[i+1*8] = digitalRead(pin_data[i]);
+     }
+  
+  digitalWrite(pin_adress0, HIGH);
+  digitalWrite(pin_adress1, HIGH);
+  digitalWrite(pin_adress2, LOW);
+  digitalWrite(pin_adress3, HIGH); // read 3-st (thrid) octet
+  
+      for (int i = 0; i <= 7; i++) {
+      Key[i+2*8] = digitalRead(pin_data[i]);
+     }
+
+  digitalWrite(pin_adress0, HIGH);
+  digitalWrite(pin_adress1, HIGH);
+  digitalWrite(pin_adress2, HIGH);
+  digitalWrite(pin_adress3, LOW); // read 4-st (quad) octet
+  
+   for (int i = 0; i <= 7; i++) {
+      Key[i+3*8] = digitalRead(pin_data[i]);
+     }
+  digitalWrite(pin_adress0, HIGH);
+  digitalWrite(pin_adress1, HIGH);
+  digitalWrite(pin_adress2, HIGH);
+  digitalWrite(pin_adress3, HIGH); // read 5-st (quad) octet
+   for (int i = 0; i <= 7; i++) {
+      Key[i+4*8] = digitalRead(pin_data[i]);
+     }
+
+  digitalWrite(pin_adress0, HIGH);
+  digitalWrite(pin_adress1, HIGH);
+  digitalWrite(pin_adress2, HIGH);
+  digitalWrite(pin_adress3, HIGH); // read 6-st (qwint) octet
+   for (int i = 0; i <= 7; i++) {
+      Key[i+5*8] = digitalRead(pin_data[i]);
+     }
+
+  digitalWrite(pin_adress0, HIGH);
+  digitalWrite(pin_adress1, HIGH);
+  digitalWrite(pin_adress2, HIGH);
+  digitalWrite(pin_adress3, HIGH); // read 7-st (sext) octet
+   for (int i = 0; i <= 7; i++) {
+      Key[i+6*8] = digitalRead(pin_data[i]);
+     }
+  digitalWrite(pin_adress0, HIGH);
+  digitalWrite(pin_adress1, HIGH);
+  digitalWrite(pin_adress2, HIGH);
+  digitalWrite(pin_adress3, HIGH); // read 8-st (sept) octet
+   for (int i = 0; i <= 7; i++) {
+      Key[i+7*8] = digitalRead(pin_data[i]);
+     }
+  
+  
+
+//****************************************************
+// Compare port reads and send midi messages
+
+    for (int i = 0; i <= LiczbaKlawiszy -1; i++) {
+    if(Key[i] != Key_last[i] ) {
+    if(Key[i] == 0)  {
+      noteOn(channel_on, 36+i, vol);
+    }
+    else  {
+      noteOn(channel_off, 36+i, 0x00);
+      noteOn(channel_off, 36+i, 0x00); //Double sending Midi_Off for Casio CT-670
+    }
+  }
+  }
+  
+ 
+ 
+ //*****************************************
+
+ //*****************************************************
+  
+  for (int i = 0; i <= LiczbaKlawiszy -1; i++) {
+  Key_last[i] = Key[i];
+ }
+ 
+ //**************************************
+
+ // Program operation signaling module
+ //----------------------------------------------------------
+ unsigned long currentMillis = millis();
+ // szybkość działania programu
+ // Serial.println(currentMillis);
+
+  if (currentMillis - previousMillis >= interval) {
+    // save the last time you blinked the LED
+    previousMillis = currentMillis;
+
+    // if the LED is off turn it on and vice-versa:
+    if (ledState == LOW) {
+      ledState = HIGH;
+    } else {
+      ledState = LOW;
+    }
+
+    // set the LED with the ledState of the variable:
+    digitalWrite(LED_BUILTIN, ledState);
+  }
+//---------------------------------------------------------------  
+}
+
+ void noteOn(byte cmd, byte data1, byte data2) {
+   Serial.write(cmd);
+   Serial.write(data1);
+   Serial.write(data2);
+             //Signaling that the MIDI message has been sent
+   digitalWrite(LED_BUILTIN, HIGH);
+   delay(20); //LED lighting time after sending the midi message from 5 to 10, max. 20 ms (and also counteracting the vibration of the contacts)
+   digitalWrite(LED_BUILTIN, LOW);
+ }
